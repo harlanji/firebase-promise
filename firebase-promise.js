@@ -87,8 +87,10 @@ function FirebaseP (firebaseRef) {
 
   function nullSuccessFunction (targetName) {
     return function () {
+      var args = arguments.slice(0);
+
       var promise = new RSVP.Promise(function firebasePromise (resolve, reject) {
-        targetArgs.push(function onComplete (err) {
+        args.push(function onComplete (err) {
           if (err != null) {
             reject(err);
             return;
@@ -97,7 +99,7 @@ function FirebaseP (firebaseRef) {
           resolve();
         });
 
-        firebaseRef[targetName].apply(firebaseRef, arguments);
+        firebaseRef[targetName].apply(firebaseRef, args);
       });
 
       return promise;
