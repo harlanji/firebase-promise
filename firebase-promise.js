@@ -76,7 +76,7 @@ function FirebaseP (firebaseRef) {
 
   function nullSuccessFunction (targetName) {
     return function () {
-      var args = arguments.slice(0);
+      var args = Array.prototype.slice.call(arguments, 0);
 
       var promise = new RSVP.Promise(function firebasePromise (resolve, reject) {
         args.push(function onComplete (err) {
