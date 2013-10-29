@@ -39,7 +39,7 @@ function FirebaseP (firebaseRef) {
     var childRef = firebaseRef.push();
     var childRefP = new FirebaseP(childRef);
 
-    if (!value) {
+    if (arguments.length == 0) {
       return childRefP;
     }
 
