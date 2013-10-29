@@ -21,12 +21,11 @@ function FirebaseP (firebaseRef) {
   this.setWithPriority = nullSuccessFunction('setWithPriority');
   this.setPriority = nullSuccessFunction('setPriority');
   this.transaction = transaction;
-  this.on = delegateFunction('on');
-  this.off = delegateFunction('off');
-  this.once = once;
-  this.limit = refFunction('limit');
-  this.startAt = refFunction('startAt');
-  this.endAt = refFunction('endAt');
+
+  // inherit the interface of Query, minus .ref(); we have our own.
+  QueryP.call(this, firebaseRef, this);
+
+  this.onDisconnect = delegateFunction('onDisconnect');
 
   this.ref = function () { return firebaseRef; }
 
@@ -52,16 +51,6 @@ function FirebaseP (firebaseRef) {
     var setPromise = childRefP.set(value);
 
     return setPromise;
-  }
-
-  function once (eventType) {
-    return new RSVP.Promise(function (resolve, reject) {
-      firebaseRef.once(eventType, function onceCallback (snapshot) {
-        resolve(snapshot);
-      }, function () {
-        reject();
-      });
-    });
   }
 
   function transaction (updateFunction, applyLocally) {
@@ -107,8 +96,9 @@ function FirebaseP (firebaseRef) {
   }
 
   function delegateFunction (targetName) {
-    // no need to wrap this call
-    return firebaseRef[targetName];
+      return function () {
+        return firebaseRef[targetName].apply(firebaseRef, arguments);
+      }
   }
 
   function refFunction (targetName) {
@@ -118,4 +108,39 @@ function FirebaseP (firebaseRef) {
       return new FirebaseP(result);
     }
   }
-};
+}
+
+
+function QueryP (query, firebaseP) {
+  this.on = delegateFunction('on');
+  this.off = delegateFunction('off');
+  this.once = once;
+  this.limit = refFunction('limit');
+  this.startAt = refFunction('startAt');
+  this.endAt = refFunction('endAt');
+  this.ref = function () { return firebaseP; };
+
+  function once (eventType) {
+    return new RSVP.Promise(function (resolve, reject) {
+      query.once(eventType, function onceCallback (snapshot) {
+        resolve(snapshot);
+      }, function () {
+        reject();
+      });
+    });
+  }
+
+  function delegateFunction (targetName) {
+    return function () {
+        return query[targetName].apply(query, arguments);
+      }
+  }
+
+  function refFunction (targetName) {
+    return function () {
+      var result = query[targetName].apply(query, arguments);
+
+      return new QueryP(result, firebaseP);
+    }
+  }
+}
