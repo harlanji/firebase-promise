@@ -44,8 +44,7 @@ function FirebaseP (firebaseRef) {
     }
 
     // since we already obtained the ID we will update,
-    // use our API and the magic of chained promises
-    // to make this code a bit cleaner.
+    // use our set API to make this code a bit cleaner.
     //
     // we could enhance the API a bit and take priority,
     // and use setWithPriority.
