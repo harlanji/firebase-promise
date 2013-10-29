@@ -29,8 +29,6 @@ function FirebaseP (firebaseRef) {
   this.endAt = refFunction('endAt');
 
   this.ref = function () { return firebaseRef; }
-  var self = this;
-
 
   function push (value) {
     // push is a mismatch because it returns the child right away,
@@ -38,10 +36,11 @@ function FirebaseP (firebaseRef) {
     // so mimic the behavior and don't return a promise if we are not
     // given a value.
 
-    var newId = firebaseRef.push();
+    var childRef = firebaseRef.push();
+    var childRefP = new FirebaseP(childRef);
 
     if (!value) {
-      return newId;
+      return childRefP;
     }
 
     // since we already obtained the ID we will update,
@@ -51,7 +50,6 @@ function FirebaseP (firebaseRef) {
     // we could enhance the API a bit and take priority,
     // and use setWithPriority.
 
-    var childRefP = self.child(newId);
     var setPromise = childRefP.set(value);
 
     return setPromise;
