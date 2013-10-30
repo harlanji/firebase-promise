@@ -53,7 +53,11 @@ function FirebaseP (firebaseRef) {
     return setPromise;
   }
 
-  function transaction (updateFunction, applyLocally) {
+  // NOTE the localCommit function breaks the promise style...
+  //      I could have passed it an event source or something, but
+  //      the whole thing is kind of an impedence mismatch.
+  //      ideas? hopefully this functionality is used infrequently...
+  function transaction (updateFunction, applyLocally, localCommit) {
     return new RSVP.Promise(function (resolve, reject) {
       firebaseRef.transaction(updateFunction, function transactionCallback (err, committed, snapshot) {
         if (err != null) {
@@ -69,6 +73,7 @@ function FirebaseP (firebaseRef) {
           // wheras a promise can only resolve once. we could map it as notifying of
           // local commit.
           //notify();
+          if (typeof(localCommit) == 'function') { localCommit(snapshot); };
         }
       }, applyLocally);
     });
