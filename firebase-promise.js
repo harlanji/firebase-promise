@@ -5,31 +5,34 @@
  *
  * See push() and transaction() for notes on slight asymmetries.
  */
+
 function FirebaseP (firebaseRef) {
-
-  this.auth = delegateFunction('auth');
-  this.unauth = delegateFunction('unauth');
-  this.child = refFunction('child');
-  this.parent = refFunction('parent');
-  this.root = refFunction('root');
-  this.name = delegateFunction('name');
-  this.toString = delegateFunction('toString');
-  this.set = nullSuccessFunction('set');
-  this.update = nullSuccessFunction('update');
-  this.remove = nullSuccessFunction('remove');
-  this.push = push;
-  this.setWithPriority = nullSuccessFunction('setWithPriority');
-  this.setPriority = nullSuccessFunction('setPriority');
-  this.transaction = transaction;
-
-  // inherit the interface of Query, minus .ref(); we have our own.
   QueryP.call(this, firebaseRef, this);
 
-  this.onDisconnect = delegateFunction('onDisconnect');
+  this._firebaseRef = firebaseRef;
+}
 
-  this.ref = function () { return firebaseRef; }
+(function () {
+  $.extend(FirebaseP.prototype, QueryP.prototype, {
+    auth: delegateFunction('auth'),
+    unauth: delegateFunction('unauth'),
+    child: refFunction('child'),
+    parent: refFunction('parent'),
+    root: refFunction('root'),
+    name: delegateFunction('name'),
+    toString: delegateFunction('toString'),
+    set: nullSuccessFunction('set'),
+    update: nullSuccessFunction('update'),
+    remove: nullSuccessFunction('remove'),
+    push: push,
+    setWithPriority: nullSuccessFunction('setWithPriority'),
+    setPriority: nullSuccessFunction('setPriority'),
+    transaction: transaction
+  });
 
   function push (value) {
+    var firebaseRef = this._firebaseRef;
+
     // push is a mismatch because it returns the child right away,
     // but it also has an onComplete callback like nullSuccessFunction.
     // so mimic the behavior and don't return a promise if we are not
@@ -58,6 +61,8 @@ function FirebaseP (firebaseRef) {
   //      the whole thing is kind of an impedence mismatch.
   //      ideas? hopefully this functionality is used infrequently...
   function transaction (updateFunction, applyLocally, localCommit) {
+    var firebaseRef = this._firebaseRef;
+    
     return new RSVP.Promise(function (resolve, reject) {
       firebaseRef.transaction(updateFunction, function transactionCallback (err, committed, snapshot) {
         if (err != null) {
@@ -80,6 +85,8 @@ function FirebaseP (firebaseRef) {
   }
 
   function nullSuccessFunction (targetName) {
+    var firebaseRef = this._firebaseRef;
+    
     return function () {
       var args = Array.prototype.slice.call(arguments, 0);
 
@@ -102,30 +109,42 @@ function FirebaseP (firebaseRef) {
 
   function delegateFunction (targetName) {
       return function () {
+        var firebaseRef = this._firebaseRef;
         return firebaseRef[targetName].apply(firebaseRef, arguments);
       }
   }
 
   function refFunction (targetName) {
     return function () {
+      var firebaseRef = this._firebaseRef;
       var result = firebaseRef[targetName].apply(firebaseRef, arguments);
 
       return new FirebaseP(result);
     }
   }
-}
+})();
+
 
 
 function QueryP (query, firebaseP) {
-  this.on = delegateFunction('on');
-  this.off = delegateFunction('off');
-  this.once = once;
-  this.limit = refFunction('limit');
-  this.startAt = refFunction('startAt');
-  this.endAt = refFunction('endAt');
-  this.ref = function () { return firebaseP; };
+  this._query = query;
+  this.ref = function () { return firebaseP; }
+}
+
+
+(function () {
+  $.extend(QueryP.prototype, {
+    on: delegateFunction('on'),
+    off: delegateFunction('off'),
+    once: once,
+    limit: refFunction('limit'),
+    startAt: refFunction('startAt'),
+    endAt: refFunction('endAt')
+  });
 
   function once (eventType) {
+    var query = this._query;
+
     return new RSVP.Promise(function (resolve, reject) {
       query.once(eventType, function onceCallback (snapshot) {
         resolve(snapshot);
@@ -136,16 +155,19 @@ function QueryP (query, firebaseP) {
   }
 
   function delegateFunction (targetName) {
-    return function () {
-        return query[targetName].apply(query, arguments);
-      }
+  return function () {
+    var query = this._query;
+    return query[targetName].apply(query, arguments);
+  }
   }
 
   function refFunction (targetName) {
     return function () {
+      var query = this._query;
       var result = query[targetName].apply(query, arguments);
 
-      return new QueryP(result, firebaseP);
+      return new QueryP(result, this.ref());
     }
   }
-}
+})();
+
