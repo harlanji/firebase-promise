@@ -1,3 +1,50 @@
+
+
+function QueryP (query, firebaseP) {
+  this._query = query;
+  this.ref = function () { return firebaseP; }
+}
+
+
+(function () {
+  $.extend(QueryP.prototype, {
+    on: delegateFunction('on'),
+    off: delegateFunction('off'),
+    once: once,
+    limit: refFunction('limit'),
+    startAt: refFunction('startAt'),
+    endAt: refFunction('endAt')
+  });
+
+  function once (eventType) {
+    var query = this._query;
+
+    return new RSVP.Promise(function (resolve, reject) {
+      query.once(eventType, function onceCallback (snapshot) {
+        resolve(snapshot);
+      }, function () {
+        reject();
+      });
+    });
+  }
+
+  function delegateFunction (targetName) {
+  return function () {
+    var query = this._query;
+    return query[targetName].apply(query, arguments);
+  }
+  }
+
+  function refFunction (targetName) {
+    return function () {
+      var query = this._query;
+      var result = query[targetName].apply(query, arguments);
+
+      return new QueryP(result, this.ref());
+    }
+  }
+})();
+
 /**
  * Wraps a given firebaseRef and returns promises when callbacks
  * would normally be taken, and promise-wrapped references where references
@@ -125,49 +172,4 @@ function FirebaseP (firebaseRef) {
 })();
 
 
-
-function QueryP (query, firebaseP) {
-  this._query = query;
-  this.ref = function () { return firebaseP; }
-}
-
-
-(function () {
-  $.extend(QueryP.prototype, {
-    on: delegateFunction('on'),
-    off: delegateFunction('off'),
-    once: once,
-    limit: refFunction('limit'),
-    startAt: refFunction('startAt'),
-    endAt: refFunction('endAt')
-  });
-
-  function once (eventType) {
-    var query = this._query;
-
-    return new RSVP.Promise(function (resolve, reject) {
-      query.once(eventType, function onceCallback (snapshot) {
-        resolve(snapshot);
-      }, function () {
-        reject();
-      });
-    });
-  }
-
-  function delegateFunction (targetName) {
-  return function () {
-    var query = this._query;
-    return query[targetName].apply(query, arguments);
-  }
-  }
-
-  function refFunction (targetName) {
-    return function () {
-      var query = this._query;
-      var result = query[targetName].apply(query, arguments);
-
-      return new QueryP(result, this.ref());
-    }
-  }
-})();
 
