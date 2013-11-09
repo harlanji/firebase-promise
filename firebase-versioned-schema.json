@@ -1,0 +1,22 @@
+/**
+ *	A starter rule set for Firebase to use the versioned schema auth class.
+ */
+{
+  "rules": {
+    // deny all reads and writes to everything by default
+    ".read": false,
+    ".write": false,
+
+    // validate that any write we make has an auth token given to the correct
+    // and expected schema version. '/version' may be replaced aith auth.versionPath,
+    // if you wish.
+    ".validate": "root.child('/version').val() === auth.requireVersion",
+
+    "version": {
+      // duplicate the rule on the version node so that we can be notified
+      // when the DB is updated (as opposed to having to infer from failed writes).
+      // there is no analog to .validate for reading data, so this is all we can do.
+      ".read": "root.child('/version').val() === auth.requireVersion"
+    }
+  }
+}
